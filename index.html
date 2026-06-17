@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Sushi Co — Loyalty Rewards Variants</title>
+<style>
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Shell ── */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  background: #111; color: #fff; min-height: 100vh;
+}
+
+/* ── Toolbar ── */
+.toolbar {
+  position: sticky; top: 0; z-index: 1000;
+  background: #1a1a1a; border-bottom: 1px solid #2a2a2a;
+  padding: 10px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.toolbar-logo { display:flex; align-items:center; gap:8px; }
+.toolbar-logo img { height: 24px; }
+.toolbar-label { font-size: 10px; color: #555; font-style: italic; }
+.tbar-sep { width: 1px; height: 20px; background: #333; }
+.toggle-group { display: flex; gap: 2px; background: #111; border-radius: 9px; padding: 3px; }
+.toggle-group button {
+  padding: 5px 14px; border: none; border-radius: 6px; cursor: pointer;
+  font-size: 12px; font-weight: 600; color: #666; background: transparent; transition: all .15s;
+  white-space: nowrap;
+}
+.toggle-group button.active { color: #fff; }
+.toggle-group.variant button.active { background: #cc1a2e; }
+.toggle-group.view button.active { background: #333; }
+.toggle-group.state button.active { background: #1a5c35; }
+
+.config-pills { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.config-pills label { font-size: 10px; color: #555; }
+.cpill {
+  display: flex; align-items: center; gap: 4px; cursor: pointer;
+  background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 20px; padding: 3px 10px 3px 5px;
+}
+.cpill input { display: none; }
+.cpill .dot { width: 12px; height: 12px; border-radius: 50%; background: #333; transition: background .15s; flex-shrink: 0; }
+.cpill input:checked + .dot { background: #cc1a2e; }
+.cpill span { font-size: 10px; color: #666; }
+.cpill input:checked ~ span { color: #ddd; }
+
+/* ── Frames ── */
+.stage { display: flex; justify-content: center; gap: 24px; padding: 20px 16px; align-items: flex-start; }
+
+.desktop-wrap {
+  width: 100%; max-width: 1140px; border-radius: 10px; overflow: hidden;
+  box-shadow: 0 16px 60px rgba(0,0,0,.7);
+}
+.browser-chrome { background: #e0e0e6; padding: 8px 12px; display: flex; align-items: center; gap: 8px; }
+.chrome-dots { display: flex; gap: 5px; }
+.chrome-dots span { width: 10px; height: 10px; border-radius: 50%; }
+.chrome-dots span:nth-child(1){background:#ff5f57}
+.chrome-dots span:nth-child(2){background:#febc2e}
+.chrome-dots span:nth-child(3){background:#28c840}
+.chrome-url { flex:1; background:#fff; border-radius:5px; padding:3px 10px; font-size:11px; color:#666; }
+
+.mobile-wrap { width: 380px; flex-shrink: 0; display: none; }
+.mobile-wrap.show { display: block; }
+.mobile-shell { background:#1c1c1e; border-radius:40px; padding:10px; box-shadow:0 16px 50px rgba(0,0,0,.8),inset 0 0 0 1px #333; }
+.mobile-notch { height:26px; width:110px; background:#000; border-radius:14px; margin:0 auto 8px; display:flex; align-items:center; padding: 0 14px; }
+.mobile-notch-time { font-size:10px; color:#fff; font-weight:600; }
+.mobile-scroll { border-radius:30px; overflow:hidden; overflow-y:auto; max-height:760px; -webkit-overflow-scrolling:touch; }
+
+/* View modes */
+body.desktop-only .mobile-wrap { display: none !important; }
+body.mobile-only .desktop-wrap { display: none; }
+body.mobile-only .mobile-wrap { display: block; }
+body.split-view .desktop-wrap { max-width: 720px; }
+body.split-view .mobile-wrap { display: block; }
+
+/* ────────────────────────────────────────────────
+   SHARED SHOW/HIDE RULES (same for all variants)
+   ──────────────────────────────────────────────── */
+[data-section="tiers"] { display: none; }
+[data-section="bonus-time"] { display: none; }
+[data-section="bonus-product"] { display: none; }
+.cfg-tiers [data-section="tiers"] { display: block; }
+.cfg-bonus-time [data-section="bonus-time"] { display: block; }
+.cfg-bonus-product [data-section="bonus-product"] { display: block; }
+.cfg-tiers .grid-tiers { display: flex !important; }
+.cfg-bonus-time .grid-bonustime { display: block !important; }
+.cfg-bonus-product .grid-bonusprod { display: block !important; }
+
+.auth-loggedout .show-auth { display: none !important; }
+.auth-loggedin .show-guest { display: none !important; }
+.auth-loggedout .tier-earn-badge { display: none !important; }
+.auth-loggedout .current-tag { display: none !important; }
+.auth-loggedout .tier-hl { border-color: #e0e0e0 !important; box-shadow: none !important; background: #fff !important; }
+.auth-loggedout .balance-zone { display: none !important; }
+
+/* ────────────────────────────────────────────────
+   SUSHI CO NAVBAR (shared across all variants)
+   ──────────────────────────────────────────────── */
+.sc-nav {
+  background: #fff; border-bottom: 1px solid #f0f0f0;
+  padding: 0 24px; height: 72px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sc-nav-logo { height: 52px; display: block; }
+.sc-nav-right { display: flex; align-items: center; gap: 12px; }
+.sc-nav-feedback { display:flex; align-items:center; gap:5px; font-size:13px; color:#333; background:none; border:none; cursor:pointer; }
+.sc-nav-account { background: #cc1a2e; color: #fff; border: none; border-radius: 20px; padding: 7px 16px; font-size: 13px; font-weight: 600; cursor: pointer; display:flex; align-items:center; gap:5px; }
+
+/* Mobile sc-nav */
+.mobile-scroll .sc-nav { padding: 0 12px; height: 56px; }
+.mobile-scroll .sc-nav-logo { height: 36px; }
+.mobile-scroll .sc-nav-feedback { display: none; }
+.mobile-scroll .sc-nav-account { padding: 6px 12px; font-size: 12px; }
+
+/* ════════════════════════════════════════════════════════════════
+   VARIANT A — "Classic sidebar"
+   ════════════════════════════════════════════════════════════════ */
+.va {
+  font-family: inherit; background: #f5f5f5;
+  --brand: #cc1a2e; --text: #111; --muted: #6b7280; --border: #e5e7eb;
+}
+
+.va .hero-img {
+  width:100%; height:200px;
+  background-image: url('https://test-assets.andromedapos.com/AME3zrDKFkGsyayx5TVznA/4/default');
+  background-size: cover; background-position: center top;
+  position:relative; overflow:hidden;
+}
+.va .hero-img::after {
+  content:''; position:absolute; inset:0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(0,0,0,.3) 100%);
+}
+
+.va .hero-strip {
+  background: #000; padding: 20px 28px;
+  display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center;
+}
+.va .hero-strip-left .prog-name { font-size: 22px; font-weight: 900; color: #fff; letter-spacing:-.3px; }
+.va .hero-strip-left .prog-tag { font-size: 12px; color: rgba(255,255,255,.5); margin:4px 0 12px; }
+.va .hero-pills { display:flex; gap:6px; flex-wrap:wrap; }
+.va .hp { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:20px; padding:4px 10px; font-size:11px; color:rgba(255,255,255,.7); }
+.va .hp b { color:#fff; }
+
+.va .balance-zone {
+  background: var(--brand); border-radius:14px; padding:16px 20px; min-width:190px; text-align:center;
+  box-shadow: 0 6px 20px rgba(204,26,46,.35);
+}
+.va .bz-lbl { font-size:9px; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,.7); margin-bottom:3px; }
+.va .bz-pts { font-size:36px; font-weight:900; color:#fff; line-height:1; }
+.va .bz-unit { font-size:11px; color:rgba(255,255,255,.8); font-weight:600; }
+.va .bz-bar { height:4px; background:rgba(255,255,255,.2); border-radius:2px; overflow:hidden; margin:8px 0 4px; }
+.va .bz-fill { height:100%; background:#fff; border-radius:2px; }
+.va .bz-next { font-size:9px; color:rgba(255,255,255,.7); }
+
+.va .join-strip { display:none; padding:14px 20px; background:#fff8f8; border:1px solid #fca5a5; border-radius:12px; margin:14px 20px; gap:14px; align-items:center; }
+.va .js-icon { font-size:28px; flex-shrink:0; }
+.va .js-h { font-size:14px; font-weight:800; color:var(--text); }
+.va .js-p { font-size:12px; color:#6b7280; }
+.va .js-btns { display:flex; gap:8px; margin-top:8px; }
+.va .btn-primary { background:var(--brand); color:#fff; border:none; border-radius:20px; padding:8px 18px; font-size:12px; font-weight:700; cursor:pointer; }
+.va .btn-ghost { background:transparent; border:1px solid #e5e7eb; border-radius:20px; padding:8px 18px; font-size:12px; font-weight:600; color:var(--text); cursor:pointer; }
+
+.va .body { max-width:1100px; margin:0 auto; padding:20px; display:grid; grid-template-columns:1fr 280px; gap:20px; align-items:start; }
+.va .card { background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+.va .card-head { display:flex; align-items:center; gap:10px; padding:14px 18px 10px; border-bottom:1px solid var(--border); }
+.va .card-ico { width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:15px; }
+.va .card-ico.earn { background:#fce7e9; }
+.va .card-ico.spend { background:#d1fae5; }
+.va .card-ico.tiers { background:#fce7f3; }
+.va .card-ico.bonus { background:#dbeafe; }
+.va .card-ico.activity { background:#f3f4f6; }
+.va .card-title { font-size:14px; font-weight:700; color:var(--text); }
+.va .card-sub { font-size:11px; color:var(--muted); }
+.va .card-body { padding:16px 18px; }
+
+.va .earn-row { display:flex; align-items:center; gap:10px; background:#fff5f5; border:1px solid #fca5a5; border-radius:10px; padding:14px 16px; margin-bottom:12px; }
+.va .earn-big { font-size:30px; font-weight:900; color:var(--brand); }
+.va .earn-eq { font-size:12px; font-weight:700; color:var(--text); flex:1; }
+.va .earn-note { font-size:11px; color:var(--muted); line-height:1.4; flex:2; }
+.va .welcome-badge { background:#fff5f5; border:1px solid #fca5a5; border-radius:9px; padding:10px 12px; font-size:11px; color:#991b1b; display:flex; gap:7px; align-items:center; }
+.va .tier-earn-badge { background:#fff5f5; border:1px solid #fca5a5; border-radius:9px; padding:10px 12px; font-size:11px; color:#991b1b; display:flex; gap:7px; align-items:center; }
+
+.va .tier-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.va .tier-card { border:2px solid var(--border); border-radius:10px; padding:14px; text-align:center; position:relative; }
+.va .tier-hl { border-color:var(--brand); background:#fff5f5; box-shadow:0 0 0 3px rgba(204,26,46,.1); }
+.va .tier-icon { font-size:22px; margin-bottom:5px; }
+.va .tier-name { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; margin-bottom:3px; }
+.va .tier-q { font-size:10px; color:var(--muted); margin-bottom:8px; line-height:1.3; }
+.va .tier-perks { font-size:10px; color:var(--muted); line-height:1.8; text-align:left; }
+.va .tier-perks div::before { content:'✓ '; color:#16a34a; }
+.va .current-tag { position:absolute; top:5px; right:5px; background:var(--brand); color:#fff; font-size:8px; font-weight:800; text-transform:uppercase; padding:2px 6px; border-radius:8px; }
+
+.va .voucher-card { display:flex; align-items:center; gap:12px; background:#000; border-radius:10px; padding:14px 18px; margin-bottom:12px; }
+.va .vc-pts { background:rgba(255,255,255,.1); border-radius:8px; padding:8px 12px; text-align:center; }
+.va .vc-num { font-size:20px; font-weight:900; color:#fff; }
+.va .vc-lab { font-size:9px; color:rgba(255,255,255,.5); text-transform:uppercase; }
+.va .vc-arrow { font-size:14px; color:rgba(255,255,255,.3); }
+.va .vc-val { background:var(--brand); border-radius:8px; padding:8px 12px; text-align:center; }
+.va .vc-desc { font-size:11px; color:rgba(255,255,255,.6); flex:1; line-height:1.4; }
+.va .prod-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.va .prod-item { border:1px solid var(--border); border-radius:9px; overflow:hidden; position:relative; }
+.va .prod-img { aspect-ratio:1; background:#f9f9f9; display:flex; align-items:center; justify-content:center; font-size:26px; overflow:hidden; }
+.va .prod-img img { width:100%; height:100%; object-fit:cover; display:block; }
+.va .prod-info { padding:8px; }
+.va .prod-name { font-size:10px; font-weight:700; color:var(--text); margin-bottom:3px; line-height:1.3; }
+.va .prod-pts { display:inline-block; background:var(--brand); color:#fff; border-radius:9px; padding:2px 7px; font-size:10px; font-weight:800; }
+
+.va .btime-list { display:flex; flex-direction:column; gap:9px; }
+.va .btime-item { display:flex; align-items:center; gap:10px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:9px; padding:11px 14px; }
+.va .btime-ico { width:32px; height:32px; border-radius:50%; background:#1d4ed8; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+.va .btime-days { font-size:12px; font-weight:700; color:#1e40af; }
+.va .btime-hours { font-size:11px; color:#3b82f6; }
+.va .btime-mult { display:inline-block; background:#1d4ed8; color:#fff; border-radius:8px; padding:2px 7px; font-size:10px; font-weight:800; margin-top:2px; }
+.va .bprod-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
+.va .bprod-item { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:9px; padding:10px; text-align:center; overflow:hidden; }
+.va .bprod-ico { font-size:22px; margin-bottom:4px; }
+.va .bprod-img { width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:6px; margin-bottom:6px; display:block; }
+.va .bprod-name { font-size:10px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.va .bprod-pts { display:inline-block; background:#16a34a; color:#fff; border-radius:8px; padding:2px 7px; font-size:10px; font-weight:800; }
+
+.va .act-list {}
+.va .act-row { display:grid; grid-template-columns:32px 1fr auto; gap:10px; align-items:center; padding:11px 0; border-bottom:1px solid var(--border); }
+.va .act-row:last-child { border-bottom:none; }
+.va .act-ico { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+.va .act-ico.earn { background:#fce7e9; }
+.va .act-ico.spend { background:#fee2e2; }
+.va .act-ico.bonus { background:#dbeafe; }
+.va .act-desc { font-size:12px; font-weight:600; color:var(--text); }
+.va .act-meta { font-size:10px; color:var(--muted); margin-top:1px; }
+.va .pts-earn { font-size:13px; font-weight:800; color:#16a34a; }
+.va .pts-spend { font-size:13px; font-weight:800; color:var(--brand); }
+.va .pts-bonus { font-size:13px; font-weight:800; color:#2563eb; }
+.va .act-bal { font-size:10px; color:var(--muted); text-align:right; }
+.va .act-guest { text-align:center; padding:24px; color:var(--muted); font-size:12px; }
+
+.va .sidebar {}
+.va .sb-bal { background:var(--brand); border-radius:12px; padding:18px; margin-bottom:12px; box-shadow:0 4px 16px rgba(204,26,46,.25); }
+.va .sb-lbl { font-size:9px; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,.7); }
+.va .sb-pts { font-size:34px; font-weight:900; color:#fff; line-height:1.1; }
+.va .sb-unit { font-size:11px; color:rgba(255,255,255,.8); font-weight:600; margin-bottom:10px; }
+.va .sb-bar { height:4px; background:rgba(255,255,255,.2); border-radius:2px; overflow:hidden; margin:8px 0 4px; }
+.va .sb-fill { height:100%; background:#fff; border-radius:2px; }
+.va .sb-cta { display:block; background:#fff; color:var(--brand); border:none; border-radius:9px; padding:11px; font-size:12px; font-weight:800; cursor:pointer; margin-top:12px; text-align:center; }
+
+.va .sb-signup { display:none; background:#fff; border:1px solid var(--border); border-radius:12px; padding:18px; text-align:center; margin-bottom:12px; }
+.va .sb-signup .ss-icon { font-size:30px; margin-bottom:6px; }
+.va .sb-signup h3 { font-size:14px; font-weight:800; color:var(--text); margin-bottom:5px; }
+.va .sb-signup p { font-size:11px; color:var(--muted); margin-bottom:12px; }
+.va .sb-signup .btn-primary { width:100%; padding:11px; border-radius:9px; }
+
+.va .sb-how { background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px; }
+.va .sb-how h4 { font-size:12px; font-weight:700; color:var(--text); margin-bottom:8px; }
+.va .sh-row { display:flex; gap:7px; align-items:flex-start; padding:7px 0; border-bottom:1px solid var(--border); font-size:11px; color:var(--muted); }
+.va .sh-row:last-child { border-bottom:none; }
+.va .sh-row strong { color:var(--text); }
+.va .sh-row a { color:var(--brand); font-weight:600; text-decoration:none; }
+
+.mobile-scroll .va .hero-strip { grid-template-columns:1fr; }
+.mobile-scroll .va .balance-zone { text-align:left; display:flex; align-items:center; gap:14px; }
+.mobile-scroll .va .bz-pts { font-size:28px; }
+.mobile-scroll .va .body { grid-template-columns:1fr; padding:12px; }
+.mobile-scroll .va .sidebar { display:none; }
+.mobile-scroll .va .tier-grid { grid-template-columns:1fr; }
+.mobile-scroll .va .prod-grid { grid-template-columns:repeat(2,1fr); }
+.mobile-scroll .va .bprod-grid { grid-template-columns:repeat(2,1fr); }
+
+
+/* ════════════════════════════════════════════════════════════════
+   VARIANT B — "Dashboard grid"
+   ════════════════════════════════════════════════════════════════ */
+.vb {
+  font-family: inherit; background: #f5f5f5;
+  --brand: #cc1a2e; --text: #111; --muted: #777; --border: #e8e8ec; --card: #fff;
+}
+
+.vb .hero-img {
+  width:100%; height:180px;
+  background-image: url('https://test-assets.andromedapos.com/AME3zrDKFkGsyayx5TVznA/4/default');
+  background-size: cover; background-position: center top;
+  position:relative; overflow:hidden;
+}
+
+.vb .stats-bar {
+  background: #000; padding: 16px 24px;
+  display: flex; align-items: center; gap: 0;
+}
+.vb .sbar-prog { padding-right: 20px; margin-right: 20px; border-right: 1px solid rgba(255,255,255,.12); }
+.vb .sbar-prog .sp-name { font-size: 17px; font-weight: 900; color: #fff; }
+.vb .sbar-prog .sp-tag { font-size: 11px; color: rgba(255,255,255,.4); }
+.vb .sbar-stats { display: flex; flex: 1; gap: 0; }
+.vb .ss-item { padding: 0 20px; border-right: 1px solid rgba(255,255,255,.1); }
+.vb .ss-item:last-child { border-right: none; }
+.vb .ss-val { font-size: 22px; font-weight: 900; color: #fff; }
+.vb .ss-val.brand { color: var(--brand); }
+.vb .ss-lab { font-size: 9px; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .5px; }
+.vb .sbar-cta { margin-left: auto; }
+.vb .sbar-cta button { background: var(--brand); border: none; border-radius: 8px; color: #fff; font-size: 12px; font-weight: 700; padding: 9px 18px; cursor: pointer; }
+.vb .sbar-cta button.ghost { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15); border-radius: 8px; color: rgba(255,255,255,.8); font-size: 11px; font-weight: 600; margin-right: 8px; }
+
+.vb .join-bar { display: none; background: #000; padding: 16px 24px; align-items: center; justify-content: space-between; }
+.vb .jb-left h2 { font-size: 16px; font-weight: 800; color: #fff; }
+.vb .jb-left p { font-size: 12px; color: rgba(255,255,255,.5); }
+.vb .jb-btns { display: flex; gap: 8px; }
+.vb .jb-btns .btn-p { background: var(--brand); color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.vb .jb-btns .btn-g { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); border-radius: 8px; padding: 9px 18px; font-size: 12px; font-weight: 600; color: #fff; cursor: pointer; }
+
+.vb .dash { max-width: 1100px; margin: 0 auto; padding: 20px; }
+.vb .dash-row { display: grid; gap: 14px; margin-bottom: 14px; }
+.vb .dash-row.r2 { grid-template-columns: 1fr 1fr; }
+.vb .dash-row.r3 { grid-template-columns: 2fr 1fr; }
+.vb .dash-row.r4 { grid-template-columns: 1fr 2fr; }
+.vb .dash-row.rfull { grid-template-columns: 1fr; }
+
+.vb .dcard { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
+.vb .dc-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px 10px; border-bottom: 1px solid var(--border); }
+.vb .dc-head-left { display: flex; align-items: center; gap: 10px; }
+.vb .dc-ico { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+.vb .dc-ico.earn { background: #fce7e9; }
+.vb .dc-ico.spend { background: #d1fae5; }
+.vb .dc-ico.tiers { background: #fce7f3; }
+.vb .dc-ico.bonus { background: #dbeafe; }
+.vb .dc-ico.activity { background: #f3f4f6; }
+.vb .dc-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.vb .dc-sub { font-size: 11px; color: var(--muted); }
+.vb .dc-body { padding: 16px 18px; }
+
+.vb .earn-visual { display: flex; align-items: center; gap: 20px; padding: 12px 0 12px; }
+.vb .ev-rate { background: var(--brand); border-radius: 12px; padding: 16px 20px; text-align: center; flex-shrink: 0; }
+.vb .r-num { font-size: 36px; font-weight: 900; color: #fff; line-height: 1; }
+.vb .r-unit { font-size: 11px; color: rgba(255,255,255,.8); font-weight: 600; margin-top: 2px; }
+.vb .ev-desc {}
+.vb .ed-main { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+.vb .ed-note { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+.vb .tier-earn-badge { background:#fff5f5; border:1px solid #fca5a5; border-radius:9px; padding:10px 14px; font-size:11px; color:#991b1b; margin-top:10px; }
+.vb .welcome-note { background:#fff5f5; border:1px solid #fca5a5; border-radius:9px; padding:10px 14px; font-size:11px; color:#991b1b; margin-top:10px; }
+
+.vb .tier-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.vb .tc { border: 2px solid var(--border); border-radius: 10px; padding: 12px; position: relative; }
+.vb .tc.silver { border-color: var(--brand); background: #fff5f5; }
+.vb .tc-icon { font-size: 18px; margin-bottom: 4px; }
+.vb .tc-name { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 2px; }
+.vb .tc.bronze .tc-name { color: #c8864e; }
+.vb .tc.silver .tc-name { color: var(--brand); }
+.vb .tc.gold .tc-name { color: #a87e10; }
+.vb .tc-q { font-size: 10px; color: var(--muted); margin-bottom: 6px; }
+.vb .tc-perks { list-style: none; font-size: 10px; color: var(--muted); line-height: 1.8; }
+.vb .tc-perks li::before { content: '✓ '; color: #16a34a; }
+.vb .current-tag { position: absolute; top: 4px; right: 4px; background: var(--brand); color: #fff; font-size: 8px; font-weight: 800; text-transform: uppercase; padding: 2px 6px; border-radius: 8px; }
+
+.vb .spend-split {}
+.vb .vchr { background: #000; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+.vb .vchr-eq { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.vb .vchr-pts { background: rgba(255,255,255,.1); border-radius: 8px; padding: 8px 12px; text-align: center; }
+.vb .vchr-num { font-size: 20px; font-weight: 900; color: #fff; }
+.vb .vchr-lab { font-size: 9px; color: rgba(255,255,255,.5); text-transform: uppercase; }
+.vb .vchr-arrow { font-size: 14px; color: rgba(255,255,255,.3); }
+.vb .vchr-val { background: var(--brand); border-radius: 8px; padding: 8px 12px; text-align: center; }
+.vb .vchr-desc { font-size: 10px; color: rgba(255,255,255,.5); }
+
+.vb .rwd-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.vb .rwd-item { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; position: relative; }
+.vb .rwd-img { aspect-ratio: 1; background: #f9f9f9; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.vb .rwd-info { padding: 6px; }
+.vb .rwd-name { font-size: 10px; font-weight: 700; color: var(--text); line-height: 1.2; }
+.vb .rwd-pts { font-size: 10px; color: var(--brand); font-weight: 700; margin-top: 2px; }
+.vb .rwd-lock { position: absolute; inset: 0; background: rgba(255,255,255,.85); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #888; }
+
+.vb .at-head { display: grid; grid-template-columns: 32px 1fr 120px 80px; gap: 10px; padding: 10px 18px 8px; border-bottom: 1px solid var(--border); }
+.vb .at-col { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.vb .at-row { display: grid; grid-template-columns: 32px 1fr 120px 80px; gap: 10px; align-items: center; padding: 10px 18px; border-bottom: 1px solid var(--border); }
+.vb .at-row:last-child { border-bottom: none; }
+.vb .at-ico { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+.vb .at-ico.earn { background: #fce7e9; }
+.vb .at-ico.spend { background: #fee2e2; }
+.vb .at-ico.bonus { background: #dbeafe; }
+.vb .at-desc { font-size: 12px; font-weight: 600; color: var(--text); }
+.vb .at-meta { font-size: 10px; color: var(--muted); margin-top: 1px; }
+.vb .at-loc { font-size: 11px; color: var(--muted); }
+.vb .at-pts { font-size: 12px; font-weight: 800; }
+.vb .at-pts.earn { color: #16a34a; }
+.vb .at-pts.spend { color: var(--brand); }
+.vb .at-pts.bonus { color: #2563eb; }
+.vb .act-guest { text-align: center; padding: 24px; color: var(--muted); font-size: 12px; }
+
+.vb .btime { display: flex; flex-direction: column; gap: 9px; }
+.vb .bt-row { display: flex; align-items: flex-start; gap: 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 9px; padding: 12px; }
+.vb .bt-ico { font-size: 20px; flex-shrink: 0; }
+.vb .bt-days { font-size: 12px; font-weight: 700; color: #1e40af; }
+.vb .bt-hours { font-size: 11px; color: #3b82f6; }
+.vb .bt-mult { display: inline-block; background: #1d4ed8; color: #fff; border-radius: 8px; padding: 2px 7px; font-size: 10px; font-weight: 800; margin-top: 3px; }
+
+.vb .bprod { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.vb .bp-item { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 9px; padding: 10px; display: flex; align-items: center; gap: 8px; }
+.vb .bp-ico { font-size: 20px; flex-shrink: 0; }
+.vb .bp-name { font-size: 11px; font-weight: 700; color: var(--text); flex: 1; }
+.vb .bp-pts { font-size: 11px; font-weight: 800; color: #16a34a; }
+
+.vb .hiw { background: #000; padding: 20px 24px; }
+.vb .hiw-inner { max-width: 1100px; margin: 0 auto; }
+.vb .hiw-title { font-size: 13px; font-weight: 700; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 14px; }
+.vb .hiw-steps { display: flex; gap: 24px; flex-wrap: wrap; }
+.vb .hiw-step { display: flex; align-items: flex-start; gap: 8px; flex: 1; min-width: 140px; }
+.vb .hs-ico { font-size: 18px; flex-shrink: 0; }
+.vb .hs-text { font-size: 11px; color: rgba(255,255,255,.6); line-height: 1.5; }
+.vb .hs-text strong { color: #fff; }
+.vb .hs-text a { color: var(--brand); text-decoration: none; font-weight: 600; }
+
+.mobile-scroll .vb .stats-bar { flex-wrap: wrap; gap: 8px; padding: 12px; }
+.mobile-scroll .vb .sbar-prog { padding-right: 0; margin-right: 0; border-right: none; border-bottom: 1px solid rgba(255,255,255,.1); padding-bottom: 8px; width: 100%; }
+.mobile-scroll .vb .sbar-stats { flex-wrap: wrap; gap: 4px; }
+.mobile-scroll .vb .ss-item { padding: 0 10px; border-right: 1px solid rgba(255,255,255,.1); }
+.mobile-scroll .vb .ss-val { font-size: 16px; }
+.mobile-scroll .vb .sbar-cta { width: 100%; margin-left: 0; padding-top: 8px; }
+.mobile-scroll .vb .dash { padding: 12px; }
+.mobile-scroll .vb .dash-row { grid-template-columns: 1fr !important; }
+.mobile-scroll .vb .tier-row { grid-template-columns: 1fr; }
+.mobile-scroll .vb .rwd-grid { grid-template-columns: repeat(2,1fr); }
+.mobile-scroll .vb .at-head { display: none; }
+.mobile-scroll .vb .at-row { grid-template-columns: 28px 1fr auto; }
+.mobile-scroll .vb .at-loc { display: none; }
+.mobile-scroll .vb .hiw-steps { gap: 12px; }
+
+
+/* ════════════════════════════════════════════════════════════════
+   VARIANT C — "Immersive chapters"
+   ════════════════════════════════════════════════════════════════ */
+.vc {
+  font-family: inherit; background: #fff;
+  --brand: #cc1a2e; --text: #111; --muted: #666; --border: #e5e7eb;
+}
+
+.vc .hero-img {
+  width:100%; height:220px;
+  background-image: url('https://test-assets.andromedapos.com/AME3zrDKFkGsyayx5TVznA/4/default');
+  background-size: cover; background-position: center top;
+}
+
+.vc .hero-stage {
+  background: #000; padding: 28px 40px;
+  display: flex; align-items: center; justify-content: space-between; gap: 30px;
+}
+.vc .hs-eyebrow { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--brand); font-weight: 700; margin-bottom: 6px; }
+.vc .hs-name { font-size: 28px; font-weight: 900; color: #fff; line-height: 1.1; margin-bottom: 8px; }
+.vc .hs-tag { font-size: 13px; color: rgba(255,255,255,.5); max-width: 440px; line-height: 1.5; margin-bottom: 14px; }
+.vc .hs-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.vc .hsp { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 20px; padding: 5px 12px; font-size: 12px; color: rgba(255,255,255,.7); }
+.vc .hsp b { color: #fff; }
+
+.vc .bal-ring {
+  width: 150px; height: 150px; border-radius: 50%; flex-shrink: 0;
+  background: conic-gradient(var(--brand) 0% 60%, rgba(255,255,255,.08) 60% 100%);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 30px rgba(204,26,46,.3);
+}
+.vc .bal-inner {
+  width: 122px; height: 122px; border-radius: 50%; background: #000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+}
+.vc .bi-pts { font-size: 28px; font-weight: 900; color: #fff; line-height: 1; }
+.vc .bi-unit { font-size: 9px; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .5px; margin: 2px 0; }
+.vc .bi-tier { font-size: 10px; font-weight: 700; color: var(--brand); }
+.vc .bi-next { font-size: 9px; color: rgba(255,255,255,.4); margin-top: 2px; }
+
+.vc .join-zone { background: #000; padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-top: 1px solid rgba(255,255,255,.08); }
+.vc .jz-copy h2 { font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 3px; }
+.vc .jz-copy p { font-size: 12px; color: rgba(255,255,255,.5); }
+.vc .jz-actions { display: flex; gap: 10px; }
+.vc .btn-p { background: var(--brand); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.vc .btn-g { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); border-radius: 8px; padding: 10px 20px; font-size: 13px; font-weight: 600; color: #fff; cursor: pointer; }
+
+.vc .chapter { padding: 40px 40px; }
+.vc .chapter.alt { background: #f9f9f9; }
+.vc .chapter.dark { background: #000; }
+.vc .ch-inner { max-width: 1020px; margin: 0 auto; }
+.vc .ch-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--brand); font-weight: 700; margin-bottom: 6px; }
+.vc .chapter.dark .ch-label { color: var(--brand); }
+.vc .ch-title { font-size: 26px; font-weight: 900; color: var(--text); margin-bottom: 8px; }
+.vc .chapter.dark .ch-title { color: #fff; }
+.vc .ch-sub { font-size: 13px; color: var(--muted); max-width: 540px; line-height: 1.6; margin-bottom: 24px; }
+.vc .chapter.dark .ch-sub { color: rgba(255,255,255,.5); }
+
+.vc .earn-hero { display: flex; align-items: flex-start; gap: 30px; }
+.vc .eh-rate { text-align: center; background: var(--brand); border-radius: 16px; padding: 24px 28px; flex-shrink: 0; box-shadow: 0 8px 24px rgba(204,26,46,.3); }
+.vc .er-big { font-size: 72px; font-weight: 900; color: #fff; line-height: 1; }
+.vc .er-desc { font-size: 14px; font-weight: 700; color: rgba(255,255,255,.8); margin-top: 4px; }
+.vc .eh-right { display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
+.vc .er-rule { display: flex; align-items: flex-start; gap: 10px; }
+.vc .er-ico { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+.vc .er-ico.base { background: #fce7e9; }
+.vc .er-ico.tier { background: #fce7f3; }
+.vc .er-ico.bonus { background: #dbeafe; }
+.vc .er-text { font-size: 13px; color: var(--muted); line-height: 1.5; padding-top: 6px; }
+.vc .er-text b { color: var(--text); }
+.vc .er-text.tier-earn-badge { color: var(--muted); }
+.vc .welcome-note { background: #fff5f5; border: 1px solid #fca5a5; border-radius: 10px; padding: 12px 16px; font-size: 12px; color: #991b1b; margin-bottom: 20px; }
+
+.vc .tier-track {
+  display: flex; gap: 0; position: relative; padding-top: 20px;
+}
+.vc .tier-track::before {
+  content: ''; position: absolute; top: 36px; left: 12%; right: 12%;
+  height: 3px; background: linear-gradient(90deg, #c8864e, #cc1a2e, #a87e10);
+  border-radius: 2px;
+}
+.vc .tt-step { flex: 1; text-align: center; position: relative; padding: 0 10px; }
+.vc .tt-node { width: 48px; height: 48px; border-radius: 50%; background: #fff; border: 3px solid var(--border); margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; position: relative; z-index: 1; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+.vc .tt-step.silver .tt-node { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(204,26,46,.15); }
+.vc .tt-name { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+.vc .tt-step.bronze .tt-name { color: #c8864e; }
+.vc .tt-step.silver .tt-name { color: var(--brand); }
+.vc .tt-step.gold .tt-name { color: #a87e10; }
+.vc .tt-qualify { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+.vc .tt-perks { font-size: 11px; color: var(--muted); line-height: 1.7; }
+.vc .tt-perks div::before { content: '✓ '; color: #16a34a; }
+.vc .current-tag { position: absolute; top: -8px; right: 50%; transform: translateX(50%); background: var(--brand); color: #fff; font-size: 8px; font-weight: 800; text-transform: uppercase; padding: 2px 6px; border-radius: 8px; white-space: nowrap; }
+
+.vc .rwd-layout { display: flex; gap: 28px; align-items: flex-start; }
+.vc .vchr-panel { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 20px; flex-shrink: 0; min-width: 180px; text-align: center; }
+.vc .vchr-title { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: rgba(255,255,255,.4); margin-bottom: 14px; }
+.vc .vchr-eq { display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 8px; }
+.vc .veq-box { background: rgba(255,255,255,.08); border-radius: 8px; padding: 10px 14px; text-align: center; }
+.vc .veq-num { font-size: 24px; font-weight: 900; color: #fff; }
+.vc .veq-lab { font-size: 9px; color: rgba(255,255,255,.4); text-transform: uppercase; }
+.vc .veq-arrow { font-size: 18px; color: rgba(255,255,255,.3); }
+.vc .veq-val { background: var(--brand); border-radius: 8px; padding: 10px 14px; text-align: center; }
+.vc .vchr-note { font-size: 10px; color: rgba(255,255,255,.4); line-height: 1.4; }
+
+.vc .free-items { flex: 1; }
+.vc .fi-label { font-size: 12px; font-weight: 700; color: rgba(255,255,255,.6); margin-bottom: 10px; }
+.vc .fi-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.vc .fi-item { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); border-radius: 10px; overflow: hidden; position: relative; }
+.vc .fi-img { aspect-ratio: 1; background: rgba(255,255,255,.04); display: flex; align-items: center; justify-content: center; font-size: 28px; }
+.vc .fi-info { padding: 8px; }
+.vc .fi-name { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.7); line-height: 1.3; }
+.vc .fi-pts { font-size: 10px; color: var(--brand); font-weight: 700; margin-top: 2px; }
+.vc .fi-lock { position: absolute; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; font-size: 9px; color: rgba(255,255,255,.5); border-radius: 10px; }
+
+.vc .btime-row { display: flex; gap: 16px; }
+.vc .btc { flex: 1; border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+.vc .btc-tag { display: inline-block; background: #1d4ed8; color: #fff; border-radius: 8px; padding: 3px 10px; font-size: 11px; font-weight: 800; margin-bottom: 8px; }
+.vc .btc-days { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 3px; }
+.vc .btc-hours { font-size: 12px; color: #3b82f6; margin-bottom: 8px; }
+.vc .btc-note { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+.vc .bprod-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.vc .bpr { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; gap: 10px; flex: 1; min-width: 180px; }
+.vc .bpr-ico { font-size: 24px; flex-shrink: 0; }
+.vc .bpr-img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+.vc .bpr-name { font-size: 13px; font-weight: 700; color: var(--text); flex: 1; }
+.vc .bpr-pts { font-size: 13px; font-weight: 800; color: #16a34a; }
+
+.vc .act-rows {}
+.vc .ar { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center; padding: 13px 0; border-bottom: 1px solid var(--border); }
+.vc .ar:last-child { border-bottom: none; }
+.vc .ar-ico { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.vc .ar-ico.earn { background: #fce7e9; }
+.vc .ar-ico.spend { background: #fee2e2; }
+.vc .ar-ico.bonus { background: #dbeafe; }
+.vc .ar-desc { font-size: 13px; font-weight: 600; color: var(--text); }
+.vc .ar-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.vc .ar-pts { font-size: 14px; font-weight: 800; }
+.vc .ar-pts.earn { color: #16a34a; }
+.vc .ar-pts.spend { color: var(--brand); }
+.vc .ar-pts.bonus { color: #2563eb; }
+.vc .ar-bal { font-size: 10px; color: var(--muted); text-align: right; margin-top: 2px; }
+.vc .act-guest { text-align: center; padding: 28px; color: var(--muted); font-size: 13px; }
+
+.vc .footer-ch { background: #000; padding: 36px 40px; }
+.vc .footer-inner { max-width: 1020px; margin: 0 auto; display: grid; grid-template-columns: repeat(4,1fr); gap: 28px; }
+.vc .fi-col {}
+.vc .fic-num { font-size: 28px; font-weight: 900; color: var(--brand); margin-bottom: 8px; }
+.vc .fic-title { font-size: 13px; font-weight: 800; color: #fff; margin-bottom: 5px; }
+.vc .fic-text { font-size: 11px; color: rgba(255,255,255,.5); line-height: 1.6; }
+.vc .fic-text a { color: var(--brand); text-decoration: none; font-weight: 600; }
+
+.mobile-scroll .vc .hero-stage { flex-direction: column; padding: 20px; gap: 18px; }
+.mobile-scroll .vc .hs-name { font-size: 22px; }
+.mobile-scroll .vc .bal-ring { width: 120px; height: 120px; }
+.mobile-scroll .vc .bal-inner { width: 96px; height: 96px; }
+.mobile-scroll .vc .bi-pts { font-size: 22px; }
+.mobile-scroll .vc .chapter { padding: 24px 16px; }
+.mobile-scroll .vc .earn-hero { flex-direction: column; gap: 16px; }
+.mobile-scroll .vc .eh-rate { align-self: center; }
+.mobile-scroll .vc .er-big { font-size: 52px; }
+.mobile-scroll .vc .tier-track { flex-direction: column; gap: 14px; }
+.mobile-scroll .vc .tier-track::before { display: none; }
+.mobile-scroll .vc .tt-step { text-align: left; display: flex; align-items: flex-start; gap: 12px; padding: 0; }
+.mobile-scroll .vc .tt-node { margin: 0; flex-shrink: 0; }
+.mobile-scroll .vc .rwd-layout { flex-direction: column; }
+.mobile-scroll .vc .fi-grid { grid-template-columns: repeat(2,1fr); }
+.mobile-scroll .vc .btime-row { flex-direction: column; }
+.mobile-scroll .vc .footer-inner { grid-template-columns: 1fr 1fr; gap: 16px; }
+.mobile-scroll .vc .ar { grid-template-columns: 36px 1fr auto; }
+.mobile-scroll .vc .join-zone { flex-direction: column; padding: 16px; gap: 12px; }
+</style>
+</head>
+<body class="desktop-only logged-in cfg-bonus-time cfg-bonus-product">
+
+<!-- ── TOOLBAR ── -->
+<div class="toolbar">
+  <div class="toolbar-logo">
+    <img src="https://assets.andromedapos.com/AnrIR74c40uVHwUe6vCaOg/1/default" alt="The Sushi Co">
+    <span class="toolbar-label">Client demo</span>
+  </div>
+  <span class="tbar-sep"></span>
+
+  <div class="toggle-group variant">
+    <button onclick="setVariant('a')" id="btn-va" class="active">A — Classic sidebar</button>
+    <button onclick="setVariant('b')" id="btn-vb">B — Dashboard grid</button>
+    <button onclick="setVariant('c')" id="btn-vc">C — Immersive chapters</button>
+  </div>
+
+  <span class="tbar-sep"></span>
+  <div class="toggle-group view">
+    <button onclick="setView('desktop-only')" id="btn-desktop" class="active">🖥 Desktop</button>
+    <button onclick="setView('split-view')" id="btn-split">Split</button>
+    <button onclick="setView('mobile-only')" id="btn-mobile">📱 Mobile</button>
+  </div>
+
+  <span class="tbar-sep"></span>
+  <div class="toggle-group state">
+    <button onclick="setState('loggedin')" id="btn-in" class="active">👤 Logged in</button>
+    <button onclick="setState('loggedout')" id="btn-out">🔒 Guest</button>
+  </div>
+
+  <span class="tbar-sep"></span>
+  <div class="config-pills">
+    <span style="font-size:10px;color:#555;">Optional sections:</span>
+    <label class="cpill"><input type="checkbox" onchange="toggleCfg('tiers',this.checked)"><span class="dot"></span><span>Tiers</span></label>
+    <label class="cpill"><input type="checkbox" checked onchange="toggleCfg('bonus-time',this.checked)"><span class="dot"></span><span>Timed bonus</span></label>
+    <label class="cpill"><input type="checkbox" checked onchange="toggleCfg('bonus-product',this.checked)"><span class="dot"></span><span>Product bonus</span></label>
+  </div>
+</div>
+
+<!-- ── STAGE ── -->
+<div class="stage">
+  <div class="desktop-wrap">
+    <div class="browser-chrome">
+      <div class="chrome-dots"><span></span><span></span><span></span></div>
+      <div class="chrome-url">orders.thesushico.com/rewards</div>
+    </div>
+    <div id="page-desktop"></div>
+  </div>
+  <div class="mobile-wrap" id="mobile-wrap">
+    <div class="mobile-shell">
+      <div class="mobile-notch"><span class="mobile-notch-time">15:22</span></div>
+      <div class="mobile-scroll" id="page-mobile"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Sushi Co Navbar ───────────────────────────────────────────────
+const SC_NAV = `
+<div class="sc-nav">
+  <img src="https://assets.andromedapos.com/AnrIR74c40uVHwUe6vCaOg/1/default" alt="The Sushi Co" class="sc-nav-logo">
+  <div class="sc-nav-right">
+    <button class="sc-nav-feedback">🔔 Feedback</button>
+    <button class="sc-nav-account">👤 Ryan</button>
+  </div>
+</div>`;
+
+// ── Shared activity rows ──────────────────────────────────────────
+const ACT_ROWS = `
+<div class="ar"><div class="ar-ico earn">⭐</div><div><div class="ar-desc">Order #4821 — Delivery</div><div class="ar-meta">Today 12:34 · Sushi Co Canary Wharf</div></div><div><div class="ar-pts earn">+24 pts</div><div class="ar-bal">Balance: 500</div></div></div>
+<div class="ar"><div class="ar-ico bonus">⚡</div><div><div class="ar-desc">Wednesday bonus — ×2</div><div class="ar-meta">Today 12:34 · Bonus on #4821</div></div><div><div class="ar-pts bonus">+24 pts</div><div class="ar-bal">Balance: 476</div></div></div>
+<div class="ar"><div class="ar-ico bonus">🍱</div><div><div class="ar-desc">Chicken Gyoza bonus</div><div class="ar-meta">Today 12:34 · Product bonus on #4821</div></div><div><div class="ar-pts bonus">+10 pts</div><div class="ar-bal">Balance: 452</div></div></div>
+<div class="ar"><div class="ar-ico spend">🎁</div><div><div class="ar-desc">Reward redeemed — £5.00 off</div><div class="ar-meta">Mon 16 Jun · Sushi Co Shoreditch</div></div><div><div class="ar-pts spend">−50 pts</div><div class="ar-bal">Balance: 442</div></div></div>
+<div class="ar"><div class="ar-ico earn">⭐</div><div><div class="ar-desc">Order #4803 — Collection</div><div class="ar-meta">Mon 16 Jun 19:22 · Sushi Co Shoreditch</div></div><div><div class="ar-pts earn">+18 pts</div><div class="ar-bal">Balance: 492</div></div></div>`;
+
+// ── Variant A HTML ────────────────────────────────────────────────
+function htmlA() {
+  return `<div class="va">
+  ${SC_NAV}
+  <!-- Hero image -->
+  <div class="hero-img"></div>
+  <!-- Hero strip -->
+  <div class="hero-strip">
+    <div class="hero-strip-left">
+      <div class="prog-name">The Sushi Club</div>
+      <div class="prog-tag">Earn TSC Points every time you order</div>
+      <div class="hero-pills">
+        <div class="hp">⭐ <b>1 pt</b> per £1 spent</div>
+        <div class="hp">🎁 50 pts = <b>£5 off</b></div>
+        <div class="hp">🌟 <b>50 points</b> to get started</div>
+      </div>
+    </div>
+    <div class="balance-zone show-auth">
+      <div class="bz-lbl">Your TSC balance</div>
+      <div class="bz-pts">500</div>
+      <div class="bz-unit">TSC Points</div>
+      <div class="bz-bar"><div class="bz-fill" style="width:100%"></div></div>
+      <div class="bz-next">Worth £50 · Ready to spend</div>
+    </div>
+  </div>
+  <!-- Join strip (guest) -->
+  <div class="join-strip show-guest" style="display:none">
+    <div class="js-icon">🌟</div>
+    <div>
+      <div class="js-h">Join The Sushi Club — it's free</div>
+      <div class="js-p">Earn 50 welcome points when you register before your first order.</div>
+      <div class="js-btns"><button class="btn-primary">Create free account</button><button class="btn-ghost">Sign in</button></div>
+    </div>
+  </div>
+  <!-- Body -->
+  <div class="body">
+    <div class="main-col">
+      <!-- Earn -->
+      <div class="card">
+        <div class="card-head"><div class="card-ico earn">⭐</div><div><div class="card-title">How to Earn Points</div><div class="card-sub">Added automatically after every eligible order</div></div></div>
+        <div class="card-body">
+          <div class="earn-row">
+            <div class="earn-big">1pt</div>
+            <div class="earn-eq">per £1 spent</div>
+            <div class="earn-note">Calculated on your order subtotal. Online orders only — in-store purchases are not eligible.</div>
+          </div>
+          <div class="welcome-badge">🌟 Register before your first order and earn <b>50 welcome points</b> — a £5 head start</div>
+          <div class="tier-earn-badge" style="margin-top:8px">⭐ Bonus points may be offered during special promotions or on selected items</div>
+        </div>
+      </div>
+      <!-- Tiers -->
+      <div class="card" data-section="tiers">
+        <div class="card-head"><div class="card-ico tiers">🏆</div><div><div class="card-title">Membership Tiers</div><div class="card-sub">The more you order, the more you earn</div></div></div>
+        <div class="card-body">
+          <div class="tier-grid">
+            <div class="tier-card"><div class="tier-icon">🥉</div><div class="tier-name" style="color:#c8864e">Bronze</div><div class="tier-q">From your first order</div><div class="tier-perks"><div>1 pt per £1</div><div>All rewards</div></div></div>
+            <div class="tier-card tier-hl"><span class="current-tag">Your tier</span><div class="tier-icon">🥈</div><div class="tier-name" style="color:#cc1a2e">Silver</div><div class="tier-q">After 250 orders</div><div class="tier-perks"><div>+15% bonus pts</div><div>Free delivery £20+</div><div>Early access</div></div></div>
+            <div class="tier-card"><div class="tier-icon">🥇</div><div class="tier-name" style="color:#a87e10">Gold</div><div class="tier-q">After 500 orders</div><div class="tier-perks"><div>+20% bonus pts</div><div>Free delivery always</div><div>Priority orders</div></div></div>
+          </div>
+        </div>
+      </div>
+      <!-- Spend / Rewards -->
+      <div class="card">
+        <div class="card-head"><div class="card-ico spend">🎁</div><div><div class="card-title">Your Rewards</div><div class="card-sub">Spend at checkout — money off or a free item</div></div></div>
+        <div class="card-body">
+          <div class="voucher-card">
+            <div class="vc-pts"><div class="vc-num">50</div><div class="vc-lab">pts</div></div>
+            <div class="vc-arrow">→</div>
+            <div class="vc-val"><div class="vc-num">£5</div><div class="vc-lab">off</div></div>
+            <div class="vc-desc">Apply at checkout. Minimum 50 points to redeem. Minimum delivery order value may apply.</div>
+          </div>
+          <div class="prod-grid" style="grid-template-columns:repeat(2,1fr)">
+            <div class="prod-item"><div class="prod-img"><img src="https://test-assets.andromedapos.com/DTxYJY8PM0y9hjZRAB99VQ/1/default" alt="Chocolate Ganache Mochi"></div><div class="prod-info"><div class="prod-name">Chocolate Ganache Mochi</div><div class="prod-pts">⭐ 200 pts</div></div></div>
+            <div class="prod-item"><div class="prod-img"><img src="https://test-assets.andromedapos.com/6KRRjHp7akelgQ4KiI6tbA/1/default" alt="Chocolate Mousse"></div><div class="prod-info"><div class="prod-name">Chocolate Mousse &amp; Miso Caramel</div><div class="prod-pts">⭐ 200 pts</div></div></div>
+          </div>
+        </div>
+      </div>
+      <!-- Bonus time -->
+      <div class="card" data-section="bonus-time">
+        <div class="card-head"><div class="card-ico bonus">⏰</div><div><div class="card-title">Bonus Points Windows</div><div class="card-sub">Order during these times for extra points</div></div></div>
+        <div class="card-body">
+          <div class="btime-list">
+            <div class="btime-item"><div class="btime-ico">⏰</div><div><div class="btime-days">Wednesday &amp; Thursday</div><div class="btime-hours">11:00am – 6:30pm</div><div class="btime-mult">+100% bonus points</div></div></div>
+          </div>
+        </div>
+      </div>
+      <!-- Bonus products -->
+      <div class="card" data-section="bonus-product">
+        <div class="card-head"><div class="card-ico bonus">🍱</div><div><div class="card-title">Bonus Points on These Items</div><div class="card-sub">On top of your standard earn rate</div></div></div>
+        <div class="card-body">
+          <div class="bprod-grid" style="grid-template-columns:repeat(2,1fr)">
+            <div class="bprod-item"><img class="bprod-img" src="https://test-assets.andromedapos.com/arsRGXGC406RDTk5X0fv3A/2/default" alt="Green Uramaki"><div class="bprod-name">Green Uramaki</div><div class="bprod-pts">+20 pts</div></div>
+            <div class="bprod-item"><img class="bprod-img" src="https://test-assets.andromedapos.com/uuOmezjrPUaFFDIOeb8y8Q/1/default" alt="Chicken Gyoza"><div class="bprod-name">Chicken Gyoza</div><div class="bprod-pts">+10 pts</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- Activity -->
+      <div class="card">
+        <div class="card-head"><div class="card-ico activity">📋</div><div><div class="card-title">Recent Activity</div><div class="card-sub">Your last transactions</div></div></div>
+        <div class="card-body" style="padding-top:0;padding-bottom:0;">
+          <div class="show-auth act-list">${ACT_ROWS.replace(/ar-ico/g,'act-ico').replace(/ar-desc/g,'act-desc').replace(/ar-meta/g,'act-meta').replace(/ar-pts/g,'act-pts').replace(/ar-bal/g,'act-bal').replace(/<div class="ar"/g,'<div class="act-row"')}</div>
+          <div class="show-guest act-guest">🔒 Sign in to see your TSC activity</div>
+        </div>
+      </div>
+    </div>
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sb-bal show-auth">
+        <div class="sb-lbl">Your TSC balance</div>
+        <div class="sb-pts">500</div>
+        <div class="sb-unit">TSC Points · Worth £50</div>
+        <div class="sb-bar"><div class="sb-fill" style="width:100%"></div></div>
+        <div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:4px;">Ready to spend — 50 pts = £5 off</div>
+        <button class="sb-cta">🎁 Redeem points</button>
+      </div>
+      <div class="sb-signup show-guest">
+        <div class="ss-icon">🌟</div>
+        <h3>Join The Sushi Club</h3>
+        <p>Register before your first order to earn 50 welcome points.</p>
+        <button class="btn-primary">Create free account</button>
+      </div>
+      <div class="sb-how">
+        <h4>How it works</h4>
+        <div class="sh-row"><span>🛒</span><div><strong>Order online</strong> — points added automatically after confirmation</div></div>
+        <div class="sh-row"><span>⭐</span><div><strong>Earn 1 point</strong> per £1 spent on every eligible order</div></div>
+        <div class="sh-row"><span>🎁</span><div><strong>50 points = £5 off</strong> — apply at checkout when ready</div></div>
+        <div class="sh-row"><span>🌟</span><div><strong>Welcome bonus:</strong> 50 pts free when you register first</div></div>
+        <div class="sh-row"><span>📄</span><div><a href="https://orders.thesushico.com/sections/loyalty-scheme">View full Terms &amp; Conditions →</a></div></div>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+// ── Variant B HTML ────────────────────────────────────────────────
+function htmlB() {
+  const actTableRows = `
+    <div class="at-row"><div class="at-ico earn">⭐</div><div><div class="at-desc">Order #4821 — Delivery</div><div class="at-meta">Today 12:34</div></div><div class="at-loc">Canary Wharf</div><div class="at-pts earn" style="text-align:right">+24 pts</div></div>
+    <div class="at-row"><div class="at-ico bonus">⚡</div><div><div class="at-desc">Wednesday bonus ×2</div><div class="at-meta">Today 12:34</div></div><div class="at-loc">Bonus on #4821</div><div class="at-pts bonus" style="text-align:right">+24 pts</div></div>
+    <div class="at-row"><div class="at-ico bonus">🍱</div><div><div class="at-desc">Chicken Gyoza bonus</div><div class="at-meta">Today 12:34</div></div><div class="at-loc">Product bonus</div><div class="at-pts bonus" style="text-align:right">+10 pts</div></div>
+    <div class="at-row"><div class="at-ico spend">🎁</div><div><div class="at-desc">Reward redeemed — £5 off</div><div class="at-meta">Mon 16 Jun</div></div><div class="at-loc">Shoreditch</div><div class="at-pts spend" style="text-align:right">−50 pts</div></div>
+    <div class="at-row"><div class="at-ico earn">⭐</div><div><div class="at-desc">Order #4803 — Collection</div><div class="at-meta">Mon 16 Jun 19:22</div></div><div class="at-loc">Shoreditch</div><div class="at-pts earn" style="text-align:right">+18 pts</div></div>`;
+
+  return `<div class="vb">
+  ${SC_NAV}
+  <div class="hero-img"></div>
+  <!-- Stats bar (logged in) -->
+  <div class="stats-bar show-auth">
+    <div class="sbar-prog">
+      <div class="sp-name">The Sushi Club</div>
+      <div class="sp-tag">Earn · Collect · Spend</div>
+    </div>
+    <div class="sbar-stats">
+      <div class="ss-item"><div class="ss-val brand">500</div><div class="ss-lab">TSC Points</div></div>
+      <div class="ss-item"><div class="ss-val">£50</div><div class="ss-lab">Points Value</div></div>
+      <div class="ss-item"><div class="ss-val">✅ 10×</div><div class="ss-lab">Ready to Redeem</div></div>
+      <div class="ss-item"><div class="ss-val">50pts</div><div class="ss-lab">= £5 Off</div></div>
+    </div>
+    <div class="sbar-cta"><button class="ghost">View activity</button><button>🎁 Redeem</button></div>
+  </div>
+  <!-- Join bar (guest) -->
+  <div class="join-bar show-guest" style="display:none">
+    <div class="jb-left"><h2>Join The Sushi Club — it's free</h2><p>Register before your first order to get 50 welcome points (worth £5).</p></div>
+    <div class="jb-btns"><button class="btn-p">Create account</button><button class="btn-g">Sign in</button></div>
+  </div>
+  <!-- Dashboard -->
+  <div class="dash">
+    <!-- Row: Earn (wide) + Tiers (narrow) -->
+    <div class="dash-row r3">
+      <div class="dcard">
+        <div class="dc-head"><div class="dc-head-left"><div class="dc-ico earn">⭐</div><div><div class="dc-title">How to Earn</div><div class="dc-sub">Points added after every eligible order</div></div></div></div>
+        <div class="dc-body">
+          <div class="earn-visual">
+            <div class="ev-rate"><div class="r-num">1</div><div class="r-unit">point per £1</div></div>
+            <div class="ev-desc">
+              <div class="ed-main">Online orders only — in-store purchases not eligible</div>
+              <div class="ed-note">Points are added once your order is confirmed. Calculated on subtotal, excluding delivery fees. Bonus points may be offered during special promotions.</div>
+            </div>
+          </div>
+          <div class="welcome-note">🌟 Register before your first order to earn <b>50 welcome points</b> — that's £5 on us</div>
+          <div class="tier-earn-badge" style="margin-top:8px">🏅 Silver &amp; Gold members earn bonus points — check the Tiers section</div>
+        </div>
+      </div>
+      <div class="dcard" data-section="tiers">
+        <div class="dc-head"><div class="dc-head-left"><div class="dc-ico tiers">🏆</div><div><div class="dc-title">Your Tier</div><div class="dc-sub">Unlock bigger rewards</div></div></div></div>
+        <div class="dc-body" style="padding-top:10px">
+          <div class="tier-row">
+            <div class="tc bronze"><div class="tc-icon">🥉</div><div class="tc-name">Bronze</div><div class="tc-q">From day 1</div><ul class="tc-perks"><li>1 pt per £1</li><li>All rewards</li></ul></div>
+            <div class="tc silver"><span class="current-tag">Yours</span><div class="tc-icon">🥈</div><div class="tc-name">Silver</div><div class="tc-q">250 orders</div><ul class="tc-perks"><li>+15% bonus</li><li>Free del £20+</li></ul></div>
+            <div class="tc gold"><div class="tc-icon">🥇</div><div class="tc-name">Gold</div><div class="tc-q">500 orders</div><ul class="tc-perks"><li>+20% bonus</li><li>Free del always</li></ul></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Row: Rewards (narrow) + Activity (wide) -->
+    <div class="dash-row r4">
+      <div class="dcard">
+        <div class="dc-head"><div class="dc-head-left"><div class="dc-ico spend">🎁</div><div><div class="dc-title">Rewards</div><div class="dc-sub">Spend at checkout</div></div></div></div>
+        <div class="dc-body">
+          <div class="spend-split">
+            <div class="vchr">
+              <div class="vchr-eq">
+                <div class="vchr-pts"><div class="vchr-num">50</div><div class="vchr-lab">pts</div></div>
+                <div class="vchr-arrow">→</div>
+                <div class="vchr-val"><div class="vchr-num">£5</div><div class="vchr-lab">off</div></div>
+              </div>
+              <div class="vchr-desc">Min. 50 pts to redeem. Min. delivery order value may apply.</div>
+            </div>
+            <div class="rwd-grid" style="grid-template-columns:repeat(2,1fr)">
+              <div class="rwd-item"><div class="rwd-img" style="overflow:hidden"><img src="https://test-assets.andromedapos.com/DTxYJY8PM0y9hjZRAB99VQ/1/default" alt="Chocolate Ganache Mochi" style="width:100%;height:100%;object-fit:cover;display:block"></div><div class="rwd-info"><div class="rwd-name">Chocolate Ganache Mochi</div><div class="rwd-pts">⭐ 200 pts</div></div></div>
+              <div class="rwd-item"><div class="rwd-img" style="overflow:hidden"><img src="https://test-assets.andromedapos.com/6KRRjHp7akelgQ4KiI6tbA/1/default" alt="Chocolate Mousse" style="width:100%;height:100%;object-fit:cover;display:block"></div><div class="rwd-info"><div class="rwd-name">Chocolate Mousse &amp; Miso Caramel</div><div class="rwd-pts">⭐ 200 pts</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="dcard">
+        <div class="dc-head"><div class="dc-head-left"><div class="dc-ico activity">📋</div><div><div class="dc-title">Recent Activity</div><div class="dc-sub">Your last transactions</div></div></div></div>
+        <div class="dc-body" style="padding-top:0;padding-bottom:0;">
+          <div class="show-auth act-table">
+            <div class="at-head"><div></div><div class="at-col">Transaction</div><div class="at-col">Location</div><div class="at-col" style="text-align:right">Points</div></div>
+            ${actTableRows}
+          </div>
+          <div class="show-guest act-guest">🔒 Sign in to see your TSC activity</div>
+        </div>
+      </div>
+    </div>
+    <!-- Row: Bonus time + Bonus products -->
+    <div class="dash-row r2" data-section="bonus-time">
+      <div class="dcard">
+        <div class="dc-head"><div class="dc-head-left"><div class="dc-ico bonus">⏰</div><div><div class="dc-title">Bonus Points Windows</div><div class="dc-sub">Order during these times</div></div></div></div>
+        <div class="dc-body">
+          <div class="btime">
+            <div class="bt-row"><div class="bt-ico">⏰</div><div><div class="bt-days">Wednesday &amp; Thursday</div><div class="bt-hours">11:00am – 6:30pm</div><div class="bt-mult">+100% bonus points</div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="dcard" data-section="bonus-product">
+        <div class="dc-head"><div class="dc-head-left"><div class="dc-ico bonus">🍱</div><div><div class="dc-title">Bonus on These Items</div><div class="dc-sub">On top of your standard rate</div></div></div></div>
+        <div class="dc-body">
+          <div class="bprod">
+            <div class="bp-item"><img src="https://test-assets.andromedapos.com/arsRGXGC406RDTk5X0fv3A/2/default" alt="Green Uramaki" style="width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0"><div class="bp-name">Green Uramaki</div><div class="bp-pts">+20 pts</div></div>
+            <div class="bp-item"><img src="https://test-assets.andromedapos.com/uuOmezjrPUaFFDIOeb8y8Q/1/default" alt="Chicken Gyoza" style="width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0"><div class="bp-name">Chicken Gyoza</div><div class="bp-pts">+10 pts</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- How it works footer strip -->
+  <div class="hiw">
+    <div class="hiw-inner">
+      <div class="hiw-title">How The Sushi Club works</div>
+      <div class="hiw-steps">
+        <div class="hiw-step"><div class="hs-ico">🛒</div><div class="hs-text"><strong>Order online</strong><br>Points added automatically on confirmation</div></div>
+        <div class="hiw-step"><div class="hs-ico">⭐</div><div class="hs-text"><strong>Earn 1 pt per £1</strong><br>thesushico.com or The Sushi Co. app</div></div>
+        <div class="hiw-step"><div class="hs-ico">🎁</div><div class="hs-text"><strong>50 pts = £5 off</strong><br>Spend at checkout, no fuss</div></div>
+        <div class="hiw-step"><div class="hs-ico">🌟</div><div class="hs-text"><strong>Welcome bonus</strong><br>50 pts free when you register first</div></div>
+        <div class="hiw-step"><div class="hs-ico">📄</div><div class="hs-text"><a href="https://orders.thesushico.com/sections/loyalty-scheme">Terms &amp; Conditions →</a></div></div>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+// ── Variant C HTML ────────────────────────────────────────────────
+function htmlC() {
+  return `<div class="vc">
+  ${SC_NAV}
+  <!-- Hero image band -->
+  <div class="hero-img"></div>
+  <!-- Hero stage -->
+  <div class="hero-stage">
+    <div class="hs-left">
+      <div class="hs-eyebrow">Loyalty · Rewards</div>
+      <div class="hs-name">The Sushi Club</div>
+      <div class="hs-tag">Earn TSC Points every time you order. Spend them on money off or free items — from your very first 50 points.</div>
+      <div class="hs-pills">
+        <div class="hsp">⭐ <b>1 pt</b> per £1</div>
+        <div class="hsp">🎁 <b>50 pts = £5 off</b></div>
+        <div class="hsp">🌟 <b>50 welcome points</b> free</div>
+      </div>
+    </div>
+    <!-- Balance ring (logged in) -->
+    <div class="balance-zone show-auth">
+      <div class="bal-ring">
+        <div class="bal-inner">
+          <div class="bi-pts">500</div>
+          <div class="bi-unit">TSC Points</div>
+          <div class="bi-tier" style="color:#cc1a2e;">Worth £50</div>
+          <div class="bi-next">Ready to spend</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Join zone (guest) -->
+  <div class="join-zone show-guest" style="display:none">
+    <div class="jz-copy"><h2>Join free and start earning</h2><p>Register before your first order to earn 50 welcome points — worth £5.</p></div>
+    <div class="jz-actions"><button class="btn-p">Join now — it's free</button><button class="btn-g">Sign in</button></div>
+  </div>
+
+  <!-- Chapter: Earn -->
+  <div class="chapter">
+    <div class="ch-inner">
+      <div class="ch-label">Step 01</div>
+      <div class="ch-title">Earn points with every order</div>
+      <div class="ch-sub">Points are added automatically after each eligible online order — no scanning, no codes.</div>
+      <div class="welcome-note">🌟 <b>New to The Sushi Club?</b> Register before your first order to earn 50 welcome points (worth £5) free.</div>
+      <div class="earn-hero">
+        <div class="eh-rate">
+          <div class="er-big">1</div>
+          <div class="er-desc">point per £1</div>
+        </div>
+        <div class="eh-right">
+          <div class="er-rule"><div class="er-ico base">⭐</div><div class="er-text"><b>1 point per £1 spent</b> on every eligible online order. Calculated on subtotal — delivery fees excluded.</div></div>
+          <div class="er-rule"><div class="er-ico tier">🥈</div><div class="er-text tier-earn-badge">As a <b>Silver member</b> you earn an extra <b>+15% bonus</b> — automatically applied each order.</div></div>
+          <div class="er-rule" data-section="bonus-time"><div class="er-ico bonus">⚡</div><div class="er-text">Earn <b>double or more</b> during bonus windows — shown as a separate transaction.</div></div>
+          <div class="er-rule" data-section="bonus-product"><div class="er-ico bonus">🍱</div><div class="er-text">Certain items earn <b>bonus points</b> on top of your standard rate.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chapter: Tiers (alt bg) -->
+  <div class="chapter alt" data-section="tiers">
+    <div class="ch-inner">
+      <div class="ch-label">Step 02</div>
+      <div class="ch-title">Unlock higher tiers</div>
+      <div class="ch-sub">The more you order, the more you earn. Tier progress is based on order count, not points.</div>
+      <div class="tier-track">
+        <div class="tt-step bronze">
+          <div class="tt-node">🥉</div>
+          <div class="tt-name">Bronze</div>
+          <div class="tt-qualify">From your first order</div>
+          <div class="tt-perks"><div>1 pt per £1 spent</div><div>Access to all rewards</div></div>
+        </div>
+        <div class="tt-step silver">
+          <span class="current-tag">Your tier</span>
+          <div class="tt-node">🥈</div>
+          <div class="tt-name">Silver</div>
+          <div class="tt-qualify">After 250 orders</div>
+          <div class="tt-perks"><div>+15% bonus per order</div><div>Free delivery on £20+</div><div>Early access to rewards</div></div>
+        </div>
+        <div class="tt-step gold">
+          <div class="tt-node">🥇</div>
+          <div class="tt-name">Gold</div>
+          <div class="tt-qualify">After 500 orders</div>
+          <div class="tt-perks"><div>+20% bonus per order</div><div>Free delivery always</div><div>Priority order processing</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chapter: Rewards (dark) -->
+  <div class="chapter dark">
+    <div class="ch-inner">
+      <div class="ch-label" style="color:rgba(204,26,46,.8)">Step 03</div>
+      <div class="ch-title">Spend on rewards you'll love</div>
+      <div class="ch-sub">Apply at checkout — choose money off or pick a free item from the Sushi Co. menu.</div>
+      <div class="rwd-layout">
+        <div class="vchr-panel">
+          <div class="vchr-title">Points voucher</div>
+          <div class="vchr-eq">
+            <div class="veq-box"><div class="veq-num">50</div><div class="veq-lab">pts</div></div>
+            <div class="veq-arrow">→</div>
+            <div class="veq-val"><div class="veq-num">£5</div><div class="veq-lab">off</div></div>
+          </div>
+          <div class="vchr-note">Minimum 50 pts to redeem. Min. delivery order value may apply.</div>
+        </div>
+        <div class="free-items">
+          <div class="fi-label">Or choose a free item</div>
+          <div class="fi-grid" style="grid-template-columns:repeat(2,1fr)">
+            <div class="fi-item"><div class="fi-img" style="overflow:hidden"><img src="https://test-assets.andromedapos.com/DTxYJY8PM0y9hjZRAB99VQ/1/default" alt="Chocolate Ganache Mochi" style="width:100%;height:100%;object-fit:cover;display:block"></div><div class="fi-info"><div class="fi-name">Chocolate Ganache Mochi</div><div class="fi-pts">⭐ 200 pts</div></div></div>
+            <div class="fi-item"><div class="fi-img" style="overflow:hidden"><img src="https://test-assets.andromedapos.com/6KRRjHp7akelgQ4KiI6tbA/1/default" alt="Chocolate Mousse" style="width:100%;height:100%;object-fit:cover;display:block"></div><div class="fi-info"><div class="fi-name">Chocolate Mousse &amp; Miso Caramel</div><div class="fi-pts">⭐ 200 pts</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chapter: Bonus time -->
+  <div class="chapter" data-section="bonus-time">
+    <div class="ch-inner">
+      <div class="ch-label">Bonus</div>
+      <div class="ch-title">Earn more during bonus windows</div>
+      <div class="ch-sub">Order during these times for multiplied points — shown as a separate transaction in your activity.</div>
+      <div class="btime-row">
+        <div class="btc"><div class="btc-tag">+100% bonus</div><div class="btc-days">Wednesday &amp; Thursday</div><div class="btc-hours">11:00am – 6:30pm</div><div class="btc-note">Order any eligible item to double your points during this window.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chapter: Bonus products (alt) -->
+  <div class="chapter alt" data-section="bonus-product">
+    <div class="ch-inner">
+      <div class="ch-label">Bonus</div>
+      <div class="ch-title">Extra points on select items</div>
+      <div class="ch-sub">These menu items earn additional bonus points on top of your standard rate.</div>
+      <div class="bprod-row" style="grid-template-columns:repeat(2,1fr)">
+        <div class="bpr"><img src="https://test-assets.andromedapos.com/arsRGXGC406RDTk5X0fv3A/2/default" alt="Green Uramaki" class="bpr-img"><div class="bpr-name">Green Uramaki</div><div class="bpr-pts">+20 pts</div></div>
+        <div class="bpr"><img src="https://test-assets.andromedapos.com/uuOmezjrPUaFFDIOeb8y8Q/1/default" alt="Chicken Gyoza" class="bpr-img"><div class="bpr-name">Chicken Gyoza</div><div class="bpr-pts">+10 pts</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chapter: Activity -->
+  <div class="chapter">
+    <div class="ch-inner">
+      <div class="ch-label">Your history</div>
+      <div class="ch-title">Recent activity</div>
+      <div class="ch-sub">Every TSC Point earned, every reward spent — logged here.</div>
+      <div class="show-auth act-rows">${ACT_ROWS}</div>
+      <div class="show-guest act-guest">🔒 Sign in to see your TSC Points history</div>
+    </div>
+  </div>
+
+  <!-- Footer chapter -->
+  <div class="footer-ch">
+    <div class="footer-inner">
+      <div class="fi-col"><div class="fic-num">01</div><div class="fic-title">Order online</div><div class="fic-text">Points added automatically to your account after every eligible order on thesushico.com or the app.</div></div>
+      <div class="fi-col"><div class="fic-num">02</div><div class="fic-title">50 pts = £5 off</div><div class="fic-text">Apply points at checkout whenever you're ready. Minimum 50 points to redeem. No limit on how often you spend.</div></div>
+      <div class="fi-col"><div class="fic-num">03</div><div class="fic-title">Welcome bonus</div><div class="fic-text">Register before your first order to receive 50 free welcome points — worth £5 off your first eligible order.</div></div>
+      <div class="fi-col"><div class="fic-num">→</div><div class="fic-title">Good to know</div><div class="fic-text">In-store purchases are not eligible. Points cannot be exchanged for cash or transferred. <a href="https://orders.thesushico.com/sections/loyalty-scheme">Full T&amp;Cs here</a>.</div></div>
+    </div>
+  </div>
+</div>`;
+}
+
+// ── State ────────────────────────────────────────────────────────
+let currentVariant = 'a';
+
+function render() {
+  const html = currentVariant === 'a' ? htmlA() : currentVariant === 'b' ? htmlB() : htmlC();
+  document.getElementById('page-desktop').innerHTML = html;
+  document.getElementById('page-mobile').innerHTML = html;
+  sync();
+}
+
+function sync() {
+  const bc = document.body.className;
+  const loggedIn = bc.includes('logged-in');
+  const cfgTiers = bc.includes('cfg-tiers');
+  const cfgTime = bc.includes('cfg-bonus-time');
+  const cfgProd = bc.includes('cfg-bonus-product');
+  ['page-desktop','page-mobile'].forEach(id => {
+    const p = document.getElementById(id);
+    if (!p) return;
+    p.classList.toggle('auth-loggedin', loggedIn);
+    p.classList.toggle('auth-loggedout', !loggedIn);
+    p.classList.toggle('cfg-tiers', cfgTiers);
+    p.classList.toggle('cfg-bonus-time', cfgTime);
+    p.classList.toggle('cfg-bonus-product', cfgProd);
+  });
+}
+
+function setVariant(v) {
+  currentVariant = v;
+  ['a','b','c'].forEach(x => document.getElementById('btn-v'+x)?.classList.remove('active'));
+  document.getElementById('btn-v'+v)?.classList.add('active');
+  render();
+}
+
+function setView(mode) {
+  document.body.className = document.body.className.replace(/\b(desktop-only|mobile-only|split-view)\b/g,'').trim();
+  document.body.classList.add(mode);
+  ['btn-desktop','btn-split','btn-mobile'].forEach(b => document.getElementById(b)?.classList.remove('active'));
+  const map = {'desktop-only':'btn-desktop','split-view':'btn-split','mobile-only':'btn-mobile'};
+  document.getElementById(map[mode])?.classList.add('active');
+}
+
+function setState(s) {
+  document.body.className = document.body.className.replace(/\b(logged-in|logged-out)\b/g,'').trim();
+  document.body.classList.add(s === 'loggedin' ? 'logged-in' : 'logged-out');
+  document.getElementById('btn-in')?.classList.toggle('active', s==='loggedin');
+  document.getElementById('btn-out')?.classList.toggle('active', s==='loggedout');
+  sync();
+}
+
+function toggleCfg(c, on) {
+  document.body.classList.toggle('cfg-'+c, on);
+  sync();
+}
+
+render();
+</script>
+</body>
+</html>
